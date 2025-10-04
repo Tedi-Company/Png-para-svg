@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Conversor de Png para SVG</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    background-color: #111;
+    color: #eee;
+    text-align: center;
+    margin: 0;
+    padding: 40px 10px;
+  }
+  h1 { color: #00aaff; }
+  input[type="file"] {
+    padding: 10px;
+    border-radius: 6px;
+    background: #222;
+    color: #ccc;
+    border: 1px solid #444;
+    cursor: pointer;
+  }
+  button {
+    padding: 10px 20px;
+    margin-top: 20px;
+    background: #00aaff;
+    border: none;
+    border-radius: 6px;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+  }
+  button:hover {
+    background: #0090e0;
+  }
+  svg {
+    margin-top: 25px;
+    border: 1px solid #333;
+    image-rendering: pixelated;
+  }
+</style>
+</head>
+<body>
+  <h1>🟩 Conversor Png → SVG</h1>
+  <p>Envie um arquivo PNG exportado e gere uma versão SVG vetorial pixelada.</p>
+  <input type="file" id="fileInput" accept="image/png"><br>
+  <button id="downloadBtn" style="display:none;">Baixar SVG</button>
+  <div id="preview"></div>
+
+  <script>
+    const input = document.getElementById('fileInput');
+    const preview = document.getElementById('preview');
+    const downloadBtn = document.getElementById('downloadBtn');
+
+    input.addEventListener('change', function() {
+      const file = this.files[0];
+      if (!file) return;
+
+      const img = new Image();
+      img.onload = function() {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        canvas.width = img.width;
+        canvas.height = img.height;
+        ctx.drawImage(img, 0, 0);
+        const data = ctx.getImageData(0, 0, img.width, img.height).data;
+
+        let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${img.width}" height="${img.height}" shape-rendering="crispEdges">`;
+
+        for (let y = 0; y < img.height; y++) {
+          for (let x = 0; x < img.width; x++) {
+            const i = (y * img.width + x) * 4;
+            const r = data[i], g = data[i+1], b = data[i+2], a = data[i+3];
+            if (a > 0) {
+              const color = `rgba(${r},${g},${b},${a/255})`;
+              svg += `<rect x="${x}" y="${y}" width="1" height="1" fill="${color}"/>`;
+            }
+          }
+        }
+        svg += "</svg>";
+
+        // Mostrar visualização
+        preview.innerHTML = svg;
+        downloadBtn.style.display = "inline-block";
+
+        // Baixar arquivo SVG
+        downloadBtn.onclick = () => {
+          const blob = new Blob([svg], { type: "image/svg+xml" });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = file.name.replace(".png", ".svg");
+          a.click();
+          URL.revokeObjectURL(url);
+        };
+      };
+      img.src = URL.createObjectURL(file);
+    });
+  </script>
+</body>
+</html>
